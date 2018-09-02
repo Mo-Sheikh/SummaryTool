@@ -1,0 +1,1344 @@
+/*****************************************************************************/
+/*                            Cantata Test Script                            */
+/*****************************************************************************
+ *
+ *  Copyright    :  2017 CGI IT UK
+ *
+ *  Project      :  EGNOS V2.4.2 / 746.83252
+ *
+ *  Contract No. :  1550005745
+ *
+ ******************************************************************************
+ *
+ *  Set          :  CPF Check Set
+ *
+ *  Module		 :  DNDS_DecodedNavDataStore
+ *
+ *  Test type    :  Unit
+ *
+ *  Image        :  INTEGRITY_FRAMEWORK
+ *
+ ******************************************************************************
+ *
+ *  Test Design:
+ *
+ *  These tests are designed to achieve 100% statement and branch coverage
+ *  when combined with the Module/Integration and Data Driven tests for
+ *  this class.
+ *
+ *  All functions called outside of the class will be stubbed.
+ *
+ *********************************************************************
+ *
+ *  Summary of Test Cases
+ *
+ *  1 DNDS_ClearDecodedDataStores - Fail call to EDS_ClearDataSet
+ *  2 DNDS_ClearDecodedDataStores - Fail call to ADS_ClearDataSet
+ *  3 DNDS_ClearDecodedDataStores - Fail call to IPS_ClearParameterSet
+ *  4 DNDS_ClearDecodedDataStores - Fail call to EPS_ClearDataSet
+ *  5 DNDS_GetDecodedEphemeris - Null pointer
+ *  6 DNDS_GetNextAlmanac - test behaviour now store is full
+ *  7 DNDS_GetNextEphemeris - test behaviour now store is full
+ *  8 DNDS_GetNextIono - test behaviour now store is full
+ *  9 DNDS_GetNextEntUtc - test behaviour now store is full
+ * 10 DNDS_GetDecodedAlmanac - checking the address of ppDecodedAlmanac
+ * 11 DNDS_GetDecodedEntUtc - checking the address of ppDecodedEntUtc
+ * 12 DNDS_GetDecodedEphemeris - checking the address of ppDecodedEphemeris and number of stored ephemeris sets
+ * 13 DNDS_GetDecodedIono - checking the address of ppDecodedIono
+ * 14 DNDS_GetNextAlmanac - checking the address of ppAlmanac
+ * 15 DNDS_GetNextEntUtc - checking the address of ppEntUtcParameters and the number of decoded ephemeris
+ * 16 DNDS_GetNextEphemeris - checking the address of ppEphemeris and the number of decoded ephemeris
+ * 17 DNDS_GetNextIono - checking the address of ppIonoParameters 
+ *  
+ *****************************************************************************/
+/* Environment Definition                                                    */
+/*****************************************************************************/
+
+#define TEST_SCRIPT_GENERATOR 2
+
+/* Include files from software under test */
+#include "MD_MonitoringData.h"
+#include "DNDS_DecodedNavDataStore.h"
+
+#define CANTATA_DEFAULT_VALUE 0 /* Default value of variables & stub returns */
+
+#include <sysLib.h>
+#include <cantpp.h>  /* Cantata Directives */
+/* pragma qas cantata testscript start */
+/*****************************************************************************/
+/* Global Data Definitions                                                   */
+/*****************************************************************************/
+
+/* Global Functions */
+/* None */
+
+/* Global data */
+tsEDS_EPHEMERIS_DATA_SET *mypEphemerisData;
+tsADS_ALMANAC_DATA_SET *mypAlmanacDataSet;
+tsIPS_IONO_PARAMETER_SET *mypIonoData;
+tsEPS_ENT_PARAMETER_SET *mypEntData;
+
+typedef struct T_DNDS_DecodedNavDataStore_av_struct {
+	tsADS_ALMANAC_DATA_SET(* ref_DecodedAlmanacs)[720];
+	tsIPS_IONO_PARAMETER_SET(* ref_DecodedIono)[720];
+	tsEPS_ENT_PARAMETER_SET(* ref_DecodedEntUtc)[960];
+	tRTMC_UINT32 * ref_NumEphSets;
+	tsEDS_EPHEMERIS_DATA_SET(* ref_DecodedEphemerides)[1680]; } T_DNDS_DecodedNavDataStore_av_struct;
+extern T_DNDS_DecodedNavDataStore_av_struct av_T_DNDS_DecodedNavDataStore;
+
+/* Expected variables for global data */
+
+/* This function initialises global data to default values. This function       */
+/* is called by every test case so must not contain test case specific settings */
+static void initialise_global_data() {
+
+}
+
+/* This function copies the global data settings into expected variables for */
+/* use in check_global_data(). It is called by every test case so must not   */
+/* contain test case specific settings.                                      */
+static void initialise_expected_global_data() {
+
+}
+
+/* This function checks global data against the expected values. */
+static void check_global_data() {
+
+}
+
+/* Prototypes for test functions */
+void run_tests();
+void test_DNDS_GetNextEphemeris(int);
+void test_DNDS_ClearDecodedDataStores(int);
+void test_DNDS_ClearDecodedDataStores_1(int);
+void test_DNDS_GetNextEphemeris_1(int);
+void test_DNDS_ClearDecodedDataStores_2(int);
+void test_DNDS_GetNextEphemeris_2(int);
+void test_DNDS_ClearDecodedDataStores_3(int);
+void test_DNDS_GetDecodedEphemeris(int);
+void test_DNDS_GetDecodedEphemeris_1(int);
+void test_DNDS_GetNextAlmanac(int);
+void test_DNDS_GetNextEphemeris_3(int);
+void test_DNDS_GetNextIono(int);
+void test_DNDS_GetNextEntUtc(int);
+void test_DNDS_GetDecodedAlmanac(int);
+void test_DNDS_GetDecodedEntUtc(int);
+void test_DNDS_GetDecodedEphemeris_2(int);
+void test_DNDS_GetDecodedIono(int);
+void test_DNDS_GetNextAlmanac_1(int);
+void test_DNDS_GetNextEntUtc_1(int);
+void test_DNDS_GetNextEphemeris_4(int);
+void test_DNDS_GetNextIono_1(int);
+
+/*****************************************************************************/
+/* Coverage Analysis                                                         */
+/*****************************************************************************/
+/* Coverage Rule Set: 100% Entry Point + Statement + Call Return + Decision Coverage */
+static void rule_set(char* cppca_sut, char* cppca_context) {
+	START_TEST("COVERAGE RULE SET",
+			"100% Entry Point + Statement + Call Return + Decision Coverage");
+#ifdef CANTPP_SUBSET_DEFERRED_ANALYSIS
+	TEST_SCRIPT_WARNING("Coverage Rule Set ignored in deferred analysis mode\n");
+#elif CANTPP_COVERAGE_INSTRUMENTATION_DISABLED
+	TEST_SCRIPT_WARNING("Coverage Instrumentation has been disabled\n");
+#elif CANTPP_INSTRUMENTATION_DISABLED
+	TEST_SCRIPT_WARNING("Instrumentation has been disabled\n");
+#else
+	ANALYSIS_CHECK("100% Entry Point Coverage", cppca_entrypoint_cov, 100.0);
+
+	ANALYSIS_CHECK("100% Statement Coverage", cppca_statement_cov, 100.0);
+
+	ANALYSIS_CHECK("100% Call Return Coverage", cppca_callreturn_cov, 100.0);
+
+	ANALYSIS_CHECK("100% Decision Coverage", cppca_decision_cov, 100.0);
+
+	REPORT_COVERAGE(cppca_entrypoint_cov | cppca_statement_cov
+			| cppca_callreturn_cov | cppca_decision_cov, cppca_sut,
+			cppca_all_details | cppca_include_catch, cppca_context);
+#endif
+	END_TEST();
+}
+
+/*****************************************************************************/
+/* Program Entry Point                                                       */
+/*****************************************************************************/
+int main() {
+	OPEN_LOG("test_T_DNDS_DecodedNavDataStore.ctr", false, 100);
+	START_SCRIPT("T_DNDS_DecodedNavDataStore", true);
+
+	run_tests();
+
+	return !END_SCRIPT(true);
+}
+
+/*****************************************************************************/
+/* Test Control                                                              */
+/*****************************************************************************/
+/* run_tests() contains calls to the individual test cases, you can turn test*/
+/* cases off by adding comments*/
+void run_tests() {
+	sysProcNumSet(1);
+	test_DNDS_GetNextEphemeris(1);
+	test_DNDS_ClearDecodedDataStores(1);
+	test_DNDS_ClearDecodedDataStores_1(1);
+	test_DNDS_GetNextEphemeris_1(1);
+	test_DNDS_ClearDecodedDataStores_2(1);
+	test_DNDS_GetNextEphemeris_2(1);
+	test_DNDS_ClearDecodedDataStores_3(1);
+	test_DNDS_GetDecodedEphemeris(1);
+	test_DNDS_GetDecodedEphemeris_1(1);
+	test_DNDS_GetNextAlmanac(1);
+	test_DNDS_GetNextEphemeris_3(1);
+	test_DNDS_GetNextIono(1);
+	test_DNDS_GetNextEntUtc(1);
+	test_DNDS_GetDecodedAlmanac(1);
+	test_DNDS_GetDecodedEntUtc(1);
+	test_DNDS_GetDecodedEphemeris_2(1);
+    test_DNDS_GetDecodedIono(1);
+    test_DNDS_GetNextAlmanac_1(1);
+    test_DNDS_GetNextEntUtc_1(1);
+    test_DNDS_GetNextEphemeris_4(1);
+    test_DNDS_GetNextIono_1(1);
+
+   	EXPORT_COVERAGE("test_T_DNDS_DecodedNavDataStore.cov", cppca_export_replace);
+   	IMPORT_COVERAGE("..\\..\\..\\..\\DNDS_DecodedNavDataStore_I_MI_INT\\Cantata\\tests\\test_T_DNDS_DecodedNavDataStore\\test_T_DNDS_DecodedNavDataStore.cov", cppca_none);
+   	rule_set("*", "*");
+}
+
+/*****************************************************************************/
+/* Test Cases                                                                */
+/*****************************************************************************/
+/*=================================================================
+ CASE 1
+ COMMENT:
+ DNDS_ClearDecodedDataStores - Fail call to EDS_ClearDataSet
+
+ DESIGN:
+ Use stub of EDS_ClearDataSet to fail call.
+ Before calling DNDS_ClearDecodedDataStores, DNDS_GetNextEphemeris
+ is called to allocate a structure so that store is not empty.
+
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE.
+ Log appropriate event.
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextEphemeris
+ Call DNDS_ClearDecodedDataStores
+ -------------------------------------------------------------------*/
+
+/* call 1 of 2 */
+void test_DNDS_GetNextEphemeris(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tsEDS_EPHEMERIS_DATA_SET ** ppEphemeris = &mypEphemerisData;
+		teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+		teRTMC_STATUS returnValue = RTMC_FAILURE;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 001a - GetNextEphemeris",
+				"Call 1 of 2: DNDS_GetNextEphemeris - Fail call to EDS_ClearDataSet");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS(" ");
+
+		/* Call SUT */
+		returnValue = DNDS_GetNextEphemeris(ppEphemeris);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/* call 2 of 2 */
+void test_DNDS_ClearDecodedDataStores(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 001b - ClearDecodedDataStores",
+				"Call 2 of 2: DNDS_ClearDecodedDataStores - Fail call to EDS_ClearDataSet");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("EDS_ClearDataSet#failure; MD_LogEvent#ClearProp;");
+
+		/* Call SUT */
+		returnValue = DNDS_ClearDecodedDataStores();
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 2
+ COMMENT:
+ DNDS_ClearDecodedDataStores - Fail call to ADS_ClearDataSet
+
+ DESIGN:
+ Use stub of ADS_ClearDataSet to fail call.
+
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE.
+ Log appropriate event.
+
+ PSEUDO-CODE:
+ Call DNDS_ClearDecodedDataStores
+ -------------------------------------------------------------------*/
+
+void test_DNDS_ClearDecodedDataStores_1(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 002 - ClearDecodedDataStores",
+				"DNDS_ClearDecodedDataStores - Fail call to ADS_ClearDataSet");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS(
+				"EDS_ClearDataSet#success; ADS_ClearDataSet#failure; MD_LogEvent#ClearProp;");
+
+		/* Call SUT */
+		returnValue = DNDS_ClearDecodedDataStores();
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 3
+ COMMENT:
+ DNDS_ClearDecodedDataStores - Fail call to IPS_ClearParameterSet
+
+ DESIGN:
+ Use stub of IPS_ClearParameterSet to fail call.
+
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE.
+ Log appropriate event.
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextEphemeris
+ Call DNDS_ClearDecodedDataStores
+ -------------------------------------------------------------------*/
+
+/* call 1 of 2 */
+void test_DNDS_GetNextEphemeris_1(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tsEDS_EPHEMERIS_DATA_SET ** ppEphemeris = &mypEphemerisData;
+		teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+		teRTMC_STATUS returnValue = RTMC_FAILURE;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 003a - GetNextEphemeris",
+				"Call 1 of 2: DNDS_GetNextEphemeris - Fail call to IPS_ClearParameterSet");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS(" ");
+
+		/* Call SUT */
+		returnValue = DNDS_GetNextEphemeris(ppEphemeris);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/* call 2 of 2 */
+void test_DNDS_ClearDecodedDataStores_2(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 003b - ClearDecodedDataStores",
+				"Call 1 of 2: DNDS_ClearDecodedDataStores - Fail call to IPS_ClearParameterSet");
+
+		/* Expected Call Sequence  */
+		EXPECT_CALL("EDS_ClearDataSet", "1", "success");
+		EXPECT_CALL("ADS_ClearDataSet", "1..720", "success");
+		EXPECT_CALL("IPS_ClearParameterSet", "1", "failure");
+		EXPECT_CALL("MD_LogEvent", "1", "ClearProp");
+
+		/* Call SUT */
+		returnValue = DNDS_ClearDecodedDataStores();
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 4
+ COMMENT:
+ DNDS_ClearDecodedDataStores - Fail call to EPS_ClearDataSet
+
+ DESIGN:
+ Use stub of EPS_ClearDataSet to fail call.
+
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE.
+ Log appropriate event.
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextEphemeris
+ Call DNDS_ClearDecodedDataStores
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetNextEphemeris_2(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tsEDS_EPHEMERIS_DATA_SET ** ppEphemeris = &mypEphemerisData;
+		teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+		teRTMC_STATUS returnValue = RTMC_FAILURE;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 004a - GetNextEphemeris",
+				"Call 1 of 2: DNDS_GetNextEphemeris - Fail call to EPS_ClearDataSet");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS(" ");
+
+		/* Call SUT */
+		returnValue = DNDS_GetNextEphemeris(ppEphemeris);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/* call 2 of 2 */
+void test_DNDS_ClearDecodedDataStores_3(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 004b - ClearDecodedDataStores",
+				"Call 2 of 2: DNDS_ClearDecodedDataStores - Fail call to EPS_ClearDataSet");
+
+		/* Expected Call Sequence  */
+		EXPECT_CALL("EDS_ClearDataSet", "1", "success");
+		EXPECT_CALL("ADS_ClearDataSet", "1..720", "success");
+		EXPECT_CALL("IPS_ClearParameterSet", "1..720", "success");
+		EXPECT_CALL("EPS_ClearDataSet", "1", "failure");
+		EXPECT_CALL("MD_LogEvent", "1", "ClearProp");
+
+		/* Call SUT */
+		returnValue = DNDS_ClearDecodedDataStores();
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 5
+ COMMENT:
+ DNDS_GetDecodedEphemeris - Null pointer
+
+ DESIGN:
+ Call DNDS_GetDecodedEphemeris with null input pointer
+
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE.
+ Log appropriate event.
+
+ PSEUDO-CODE:
+ Call DNDS_GetDecodedEphemeris
+ Call DNDS_GetDecodedEphemeris
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetDecodedEphemeris(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tsEDS_EPHEMERIS_DATA_SET ** ppDecodedEphemeris = NULL;
+		tRTMC_UINT32 myNumEphSets;
+		tRTMC_UINT32 * pNumEphSets = &myNumEphSets;
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 005a - GetDecodedEphemeris",
+				"Call 1 of 2: DNDS_GetDecodedEphemeris - Null pointer");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("MD_LogEvent#NullEphPtr;");
+
+		/* Call SUT */
+		returnValue = DNDS_GetDecodedEphemeris(ppDecodedEphemeris, pNumEphSets);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+void test_DNDS_GetDecodedEphemeris_1(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tsEDS_EPHEMERIS_DATA_SET ** ppDecodedEphemeris = &mypEphemerisData;
+		tRTMC_UINT32 * pNumEphSets = NULL;
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 005b - GetDecodedEphemeris",
+				"Call 2 of 2: DNDS_GetDecodedEphemeris - Null pointer");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("MD_LogEvent#NullNumPtr;");
+
+		/* Call SUT */
+		returnValue = DNDS_GetDecodedEphemeris(ppDecodedEphemeris, pNumEphSets);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 006
+ COMMENT:
+ DNDS_GetNextAlmanac - test behaviour now store is full
+
+ DESIGN:
+ Check behaviour of function now that the entire store is full.
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE since there are no more free structures to
+ store data.
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextAlmanac
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetNextAlmanac(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tsADS_ALMANAC_DATA_SET ** ppAlmanac = &mypAlmanacDataSet;
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+
+		/* for loop setting the flag to true in order to hit the store full exception in the module under test*/
+		int i;
+
+		for (i = 0; i < DNDS_ALM_STORE_SIZE; i++) {
+
+			ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedAlmanacs)[i].ValidityFlag
+					= RTMC_TRUE;
+
+		}
+
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 006 - GetDecodedEphemeris",
+				"DNDS_GetNextAlmanac - Store full");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("MD_LogEvent#GNA_StoreFull");
+
+		/* Call SUT */
+		returnValue = DNDS_GetNextAlmanac(ppAlmanac);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 007
+ COMMENT:
+ DNDS_GetNextEphemeris - test behaviour now store is full
+
+ DESIGN:
+ Check behaviour of function now that the entire store is full.
+
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE.
+
+ PSEUDO-CODE:
+ CALL DNDS_GetNextEphemeris
+ -------------------------------------------------------------------*/
+void test_DNDS_GetNextEphemeris_3(int doIt) {
+	if (doIt) {
+
+		/* Test case data declarations */
+		tsEDS_EPHEMERIS_DATA_SET ** ppEphemeris = &mypEphemerisData;
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+
+		ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, NumEphSets)
+				= DNDS_EPH_STORE_SIZE;
+
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 007 - GetNextEphemeris",
+				"DNDS_GetNextEphemeris - Store is full");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("MD_LogEvent#GNE_StoreFull");
+
+		/* Call SUT */
+		returnValue = DNDS_GetNextEphemeris(ppEphemeris);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+/*=================================================================
+ CASE 008
+ COMMENT:
+ DNDS_GetNextIono - test behaviour now store is full
+
+ DESIGN:
+ Check behaviour of function now that the entire store is full.
+
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE.
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextIono
+ -------------------------------------------------------------------*/
+void test_DNDS_GetNextIono(int doIt) {
+	if (doIt) {
+
+		/* Test case data declarations */
+		tsIPS_IONO_PARAMETER_SET ** ppIonoParameters = &mypIonoData;
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+
+		/* for loop setting the flag to true in order to hit the store full exception in the module under test*/
+		int i;
+
+		for (i = 0; i < DNDS_IONO_STORE_SIZE; i++) {
+
+			ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedIono)[i].ValidityFlag
+					= RTMC_TRUE;
+
+		}
+
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 008 - GetNextIono", "DNDS_GetNextIono - Store is full");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("MD_LogEvent#GNI_StoreFull");
+
+		/* Call SUT */
+		returnValue = DNDS_GetNextIono(ppIonoParameters);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+/*=================================================================
+ CASE 009
+ COMMENT:
+ DNDS_GetNextEntUtc - test behaviour now store is full
+
+ DESIGN:
+ Check behaviour of function now that the entire store is full.
+
+ EXPECTED RESULTS:
+ Function returns RTMC_FAILURE.
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextEntUtc
+ -------------------------------------------------------------------*/
+void test_DNDS_GetNextEntUtc(int doIt) {
+	if (doIt) {
+
+		/* Test case data declarations */
+		tsEPS_ENT_PARAMETER_SET ** ppEntUtcParameters = &mypEntData;
+		teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+		teRTMC_STATUS returnValue = RTMC_SUCCESS;
+
+		/* for loop setting the flag to true in order to hit the store full exception in the module under test*/
+		int i;
+
+		for (i = 0; i < DNDS_ENT_STORE_SIZE; i++) {
+
+			ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedEntUtc)[i].ValidityFlag
+					= RTMC_TRUE;
+
+		}
+
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 009 - GetNextEntUtc",
+				"DNDS_GetNextEntUtc - Store is full");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("MD_LogEvent#GNEU_StoreFull");
+
+		/* Call SUT */
+		returnValue = DNDS_GetNextEntUtc(ppEntUtcParameters);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 010
+ COMMENT:
+ DNDS_GetDecodedAlmanac - checking the address of ppDecodedAlmanac
+
+ DESIGN:
+ Run DNDS_GetDecodedAlmanac to check that ppDecodedAlmanac is pointing 
+ to an array of structures.
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_SUCCESS
+ Function sets ppDecodedAlmanac
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextEntUtc
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetDecodedAlmanac(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tsADS_ALMANAC_DATA_SET DecodedAlmanacs;
+		tsADS_ALMANAC_DATA_SET *pDecodedAlmanac = &DecodedAlmanacs;
+		tsADS_ALMANAC_DATA_SET ** ppDecodedAlmanac = &pDecodedAlmanac;
+		teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+		teRTMC_STATUS returnValue = RTMC_FAILURE;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 010 - test_DNDS_GetDecodedAlmanac",
+				"DNDS_GetDecodedAlmanac - checking the address of ppDecodedAlmanac");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("");
+
+		/* Call SUT */
+		returnValue = DNDS_GetDecodedAlmanac(ppDecodedAlmanac);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		CHECK_ADDRESS(pDecodedAlmanac,
+				ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedAlmanacs));
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 011
+ COMMENT:
+ DNDS_GetDecodedEntUtc - checking the address of ppDecodedEntUtc
+
+ DESIGN:
+ Run DNDS_GetDecodedEntUtc to check that ppDecodedEntUtc is pointing 
+ to an array of structures
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_SUCCESS
+ Function sets ppDecodedEntUtc
+
+ PSEUDO-CODE:
+ Call DNDS_GetDecodedEntUtc 
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetDecodedEntUtc(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tsEPS_ENT_PARAMETER_SET DecodedEntUtc;
+		tsEPS_ENT_PARAMETER_SET *pDecodedEntUtc = &DecodedEntUtc;
+		tsEPS_ENT_PARAMETER_SET ** ppDecodedEntUtc = &pDecodedEntUtc;
+		teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+		teRTMC_STATUS returnValue = RTMC_FAILURE;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 011 - test_DNDS_GetDecodedEntUtc",
+				"DNDS_GetDecodedEntUtc - checking the address of ppDecodedEntUtc");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("");
+
+		/* Call SUT */
+		returnValue = DNDS_GetDecodedEntUtc(ppDecodedEntUtc);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		CHECK_ADDRESS(pDecodedEntUtc,
+				ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedEntUtc));
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 012
+ COMMENT:
+ DNDS_GetDecodedEphemeris - checking the address of ppDecodedEphemeris and number of stored ephemeris sets
+ 
+ DESIGN:
+ Run DNDS_GetDecodedEphemeris to check that ppDecodedEphemeris is pointing 
+ to an array of structures and checks the number of stored ephemeris sets 
+ is equal to NumEphSets.
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_SUCCESS
+ Function sets ppDecodedEphemeris
+ Function sets tempNumEphSets to NumEphSets
+
+ PSEUDO-CODE:
+ Call DNDS_GetDecodedEphemeris  
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetDecodedEphemeris_2(int doIt) {
+	if (doIt) {
+		/* Test case data declarations */
+		tRTMC_UINT32 tempNumEphSets;
+		tsEDS_EPHEMERIS_DATA_SET DecodedEphemeris;
+		tsEDS_EPHEMERIS_DATA_SET *pDecodedEphemeris = &DecodedEphemeris;
+		tsEDS_EPHEMERIS_DATA_SET ** ppDecodedEphemeris = &pDecodedEphemeris;
+		tRTMC_UINT32 * pNumEphSets = &tempNumEphSets;
+		teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+		teRTMC_STATUS returnValue = RTMC_FAILURE;
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+
+		START_TEST("Case 012 - test_DNDS_GetDecodedEphemeris_2",
+				"DNDS_GetDecodedEphemeris - checking the address of ppDecodedEphemeris and number of stored ephemeris sets");
+
+		/* Expected Call Sequence  */
+		EXPECTED_CALLS("");
+
+		/* Call SUT */
+		returnValue = DNDS_GetDecodedEphemeris(ppDecodedEphemeris, pNumEphSets);
+
+		/* Test case checks */
+		CHECK_S_INT(returnValue, expected_returnValue);
+		CHECK_ADDRESS(pDecodedEphemeris,
+				ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedEphemerides));
+		CHECK_S_INT(tempNumEphSets, ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, NumEphSets));
+
+		/* Checks on global data */
+		check_global_data();
+		END_CALLS();
+		END_TEST();
+	}
+}
+
+/*=================================================================
+ CASE 013
+ COMMENT:
+ DNDS_GetDecodedIono - checking the address of ppDecodedIono
+
+ DESIGN:
+ Run DNDS_GetDecodedIono to check that ppDecodedIono is pointing 
+ to an array of structures
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_SUCCESS
+ Function sets ppDecodedIono
+
+ PSEUDO-CODE:
+ Call DNDS_GetDecodedIono   
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetDecodedIono(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+	tsIPS_IONO_PARAMETER_SET DecodedIono;
+	tsIPS_IONO_PARAMETER_SET * pDecodedIono = &DecodedIono;
+    tsIPS_IONO_PARAMETER_SET ** ppDecodedIono = &pDecodedIono;
+    teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+    teRTMC_STATUS returnValue = RTMC_FAILURE;
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 013 - test_DNDS_GetDecodedIono",
+               "DNDS_GetDecodedIono - checking the address of ppDecodedIono");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("");
+
+            /* Call SUT */
+            returnValue = DNDS_GetDecodedIono(ppDecodedIono);
+
+            /* Test case checks */
+            CHECK_S_INT(returnValue, expected_returnValue);
+            CHECK_ADDRESS(pDecodedIono, ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedIono));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+/*=================================================================
+ CASE 014
+ COMMENT:
+ DNDS_GetNextAlmanac - checking the address of ppAlmanac
+
+ DESIGN:
+ Run DNDS_GetNextAlmanac to check that ppAlmanac is pointing 
+ to DecodedAlmanacs(a structure)
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_SUCCESS
+ Function sets ppAlmanac to DecodedAlmanacs
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextAlmanac   
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetNextAlmanac_1(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+
+	tsADS_ALMANAC_DATA_SET DecodedAlmanacs;
+	tsADS_ALMANAC_DATA_SET * pAlmanac = &DecodedAlmanacs;
+    tsADS_ALMANAC_DATA_SET ** ppAlmanac = &pAlmanac;
+    teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+    teRTMC_STATUS returnValue = RTMC_FAILURE;
+    
+    ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedAlmanacs)[0].ValidityFlag = RTMC_FALSE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 014 - test_DNDS_GetNextAlmanac",
+               "DNDS_GetNextAlmanac - checking the address of ppAlmanac");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("");
+
+            /* Call SUT */
+            returnValue = DNDS_GetNextAlmanac(ppAlmanac);
+
+            /* Test case checks */
+            CHECK_S_INT(returnValue, expected_returnValue);
+            CHECK_ADDRESS(pAlmanac, ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedAlmanacs));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+/*=================================================================
+ CASE 015
+ COMMENT:
+ DNDS_GetNextEntUtc - checking the address of ppEntUtcParameters and the number of decoded ephemeris
+
+ DESIGN:
+ Run DNDS_GetNextEntUtc to check that ppEntUtcParameters is pointing 
+ to DecodedEntUtc (a structure)
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_SUCCESS
+ Function sets ppEntUtcParameters to DecodedEntUtc
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextEntUtc   
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetNextEntUtc_1(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+	tsEPS_ENT_PARAMETER_SET DecodedEntUtc;
+	tsEPS_ENT_PARAMETER_SET * pEntUtcParameters = &DecodedEntUtc;
+    tsEPS_ENT_PARAMETER_SET ** ppEntUtcParameters = &pEntUtcParameters;
+    teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+    teRTMC_STATUS returnValue = RTMC_FAILURE;
+    
+    ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedEntUtc)[0].ValidityFlag = RTMC_FALSE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 015 - test_DNDS_GetNextEntUtc",
+               "DNDS_GetNextEntUtc - checking the address of ppEntUtcParameters");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("");
+
+            /* Call SUT */
+            returnValue = DNDS_GetNextEntUtc(ppEntUtcParameters);
+
+            /* Test case checks */
+            CHECK_S_INT(returnValue, expected_returnValue);
+            CHECK_ADDRESS(pEntUtcParameters, ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedEntUtc));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+/*=================================================================
+ CASE 016
+ COMMENT:
+ DNDS_GetNextEphemeris - checking the address of ppEphemeris and the number of decoded ephemeris  
+ 
+ DESIGN:
+ Run DNDS_GetNextEphemeris to check that ppEphemeris is pointing 
+ to DecodedEphemerides (a strucure) and to check the number of
+ decoded ephemeris is incremented. 
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_SUCCESS
+ Function sets ppEphemeris to DecodedEphemerides
+ Function increments NumEphSets 
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextEphemeris   
+ -------------------------------------------------------------------*/
+void test_DNDS_GetNextEphemeris_4(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+	tsEDS_EPHEMERIS_DATA_SET DecodedEphemeris;
+	tsEDS_EPHEMERIS_DATA_SET * pEphemeris = &DecodedEphemeris;
+    tsEDS_EPHEMERIS_DATA_SET ** ppEphemeris = &pEphemeris;
+    teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+    teRTMC_STATUS returnValue = RTMC_FAILURE;
+    
+    ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, NumEphSets) = 1500;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 016 - test_DNDS_GetNextEphemeris",
+               "DNDS_GetNextEphemeris - checking the address of ppEphemeris and the number of decoded ephemeris");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("");
+
+            /* Call SUT */
+            returnValue = DNDS_GetNextEphemeris(ppEphemeris);
+
+            /* Test case checks */
+            CHECK_S_INT(returnValue, expected_returnValue);
+            CHECK_ADDRESS(pEphemeris, &(ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedEphemerides))[1500]);
+            CHECK_S_INT(ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, NumEphSets), 1501);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+/*=================================================================
+ CASE 017
+ COMMENT:
+ DNDS_GetNextIono - checking the address of ppIonoParameters  
+
+ DESIGN:
+ Run DNDS_GetNextIono to check that ppIonoParameters is pointing 
+ to DecodedIono(a structure)
+ 
+ EXPECTED RESULTS:
+ Function returns RTMC_SUCCESS
+ Function sets ppIonoParameters to DecodedIono
+
+ PSEUDO-CODE:
+ Call DNDS_GetNextIono   
+ -------------------------------------------------------------------*/
+
+void test_DNDS_GetNextIono_1(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+	tsIPS_IONO_PARAMETER_SET DecodedIonoParameters;
+	tsIPS_IONO_PARAMETER_SET * pIonoParameters = &DecodedIonoParameters;
+    tsIPS_IONO_PARAMETER_SET ** ppIonoParameters = &pIonoParameters;
+    teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+    teRTMC_STATUS returnValue = RTMC_FAILURE;
+    
+    ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedIono)[0].ValidityFlag = RTMC_FALSE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 017 - test_DNDS_GetNextIono_1",
+               "DNDS_GetNextIono - checking the address of ppIonoParameters ");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("");
+
+            /* Call SUT */
+            returnValue = DNDS_GetNextIono(ppIonoParameters);
+
+            /* Test case checks */
+            CHECK_S_INT(returnValue, expected_returnValue);
+            CHECK_ADDRESS(pIonoParameters, ACCESS_VARIABLE(T_DNDS_DecodedNavDataStore, DecodedIono));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+/*****************************************************************************/
+/* Call Interface Control                                                    */
+/*****************************************************************************/
+
+/* Stub for function MD_LogEvent */
+teRTMC_STATUS MD_LogEvent(const tRTMC_UINT16 EventType,
+		const tRTMC_OBJECT_ID ObjectId, const teMD_OBJECT_STATUS ObjectStatus,
+		const tRTMC_CHAR * EventText) {
+	REGISTER_CALL("MD_LogEvent");
+
+	/* Action 1 */
+	IF_INSTANCE("ClearProp") {
+		CHECK_U_INT(EventType, MD_PROPAGATED_ERROR);
+		CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+		CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+		CHECK_STRING(EventText, "DNDS Clear Propagated");
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	/* Action 2 */
+	IF_INSTANCE("NullEphPtr") {
+		CHECK_U_INT(EventType, MD_RUNTIME_BOUNDS_CHECK_ERROR);
+		CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+		CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+		CHECK_STRING(EventText, "DNDS_GDE:Null eph ptr");
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	/* Action 3 */
+	IF_INSTANCE("NullNumPtr") {
+		CHECK_U_INT(EventType, MD_PROPAGATED_ERROR);
+		CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+		CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+		CHECK_STRING(EventText, "DNDS_GDE:Null num ptr");
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	/* Action 4 */
+	IF_INSTANCE("GNA_StoreFull") {
+		CHECK_U_INT(EventType, MD_SW_CONSTRUCTION_ERROR);
+		CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+		CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+		CHECK_STRING(EventText, "DNDS GNA Store full");
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	/* Action 5 */
+	IF_INSTANCE("GNE_StoreFull") {
+		CHECK_U_INT(EventType, MD_SW_CONSTRUCTION_ERROR);
+		CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+		CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+		CHECK_STRING(EventText, "DNDS GNE Store full");
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	/* Action 6 */
+	IF_INSTANCE("GNI_StoreFull") {
+		CHECK_U_INT(EventType, MD_SW_CONSTRUCTION_ERROR);
+		CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+		CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+		CHECK_STRING(EventText, "DNDS GNI Store full");
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	/* Action 6 */
+	IF_INSTANCE("GNEU_StoreFull") {
+		CHECK_U_INT(EventType, MD_SW_CONSTRUCTION_ERROR);
+		CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+		CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+		CHECK_STRING(EventText, "DNDS GNEU Store full");
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	LOG_SCRIPT_ERROR("Call instance not defined.");
+	return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function EDS_ClearDataSet */
+teRTMC_STATUS EDS_ClearDataSet(tsEDS_EPHEMERIS_DATA_SET * pEphemeris) {
+	REGISTER_CALL("EDS_ClearDataSet");
+
+	/* Action 1 */
+	IF_INSTANCE("failure") {
+		return (teRTMC_STATUS) RTMC_FAILURE;
+	}
+
+	/* Action 2 */
+	IF_INSTANCE("success") {
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	LOG_SCRIPT_ERROR("Call instance not defined.");
+	return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function ADS_ClearDataSet */
+teRTMC_STATUS ADS_ClearDataSet(tsADS_ALMANAC_DATA_SET * pAlmanac) {
+	REGISTER_CALL("ADS_ClearDataSet");
+
+	/* Action 1 */
+	IF_INSTANCE("failure") {
+		return (teRTMC_STATUS) RTMC_FAILURE;
+	}
+
+	/* Action 2 */
+	IF_INSTANCE("success") {
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	LOG_SCRIPT_ERROR("Call instance not defined.");
+	return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function IPS_ClearParameterSet */
+teRTMC_STATUS IPS_ClearParameterSet(tsIPS_IONO_PARAMETER_SET * pIonoParameters) {
+	REGISTER_CALL("IPS_ClearParameterSet");
+
+	/* Action 1 */
+	IF_INSTANCE("failure") {
+		return (teRTMC_STATUS) RTMC_FAILURE;
+	}
+
+	/* Action 2 */
+	IF_INSTANCE("success") {
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	LOG_SCRIPT_ERROR("Call instance not defined.");
+	return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function EPS_ClearDataSet */
+teRTMC_STATUS EPS_ClearDataSet(tsEPS_ENT_PARAMETER_SET * pEntUtcParameters) {
+	REGISTER_CALL("EPS_ClearDataSet");
+
+	/* Action 1 */
+	IF_INSTANCE("failure") {
+		return (teRTMC_STATUS) RTMC_FAILURE;
+	}
+
+	/* Action 2 */
+	IF_INSTANCE("success") {
+		return (teRTMC_STATUS) RTMC_SUCCESS;
+	}
+
+	LOG_SCRIPT_ERROR("Call instance not defined.");
+	return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* pragma qas cantata testscript end */
+/*****************************************************************************/
+/* End of test script                                                        */
+/*****************************************************************************/

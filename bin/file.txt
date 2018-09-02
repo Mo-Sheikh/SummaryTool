@@ -1,0 +1,2742 @@
+/*****************************************************************************/
+/*                            Cantata Test Script                            */
+/*****************************************************************************/
+/*****************************************************************************
+*
+*  Copyright    :  2017 CGI IT UK 
+*
+*  Project      :  EGNOS V2.4.2 / 746.83252
+*
+*  Contract No. :  1550005745
+*
+******************************************************************************
+*
+*  Set          :  CPF Check Set
+*
+*  Module       :  CMP_CompensatePseudoranges
+*                  
+*  Test type    :  Unit
+*
+*  Image        :  INTEGRITY_FRAMEWORK
+*
+******************************************************************************
+*
+*  Test Design:
+*
+*  These tests are designed to achieve 100% statement and branch coverage
+*  when combined with the Module/Integration and Data Driven tests for
+*  this class.
+*
+*  All functions called outside of the class will be stubbed.
+*
+*****************************************************************************
+*
+*  Summary of Test Cases
+*
+*   1 Various CMP functions - SDS_NumConfiguredSatellites returns an error
+*   2 Various CMP functions - RDS_NumConfiguredBRims returns an error
+*   3 CMP_CompensateRimsClockBias - RCF_GetClockBias returns an error
+*   4 CMP_CompensateRimsClockBias & T_CMP_CompensateSagnacEffectSE - CRM_GetSmoothedRanges returns an error
+*   5 CMP_CompensateRimsClockBias & CMP_CompensateRimsClockBias - CRM_GetSmoothedRimsRanges returns an error
+*   6 CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - IFB_GetIFBs returns an error
+*   7 CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - IFBbias out of range
+*   8 CMP_CompensateSagnacEffect - RDS_GetAntennaCartesianPos returns an error
+*   9 CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an error
+*  10 CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an invalid measurement
+*  11 CMP_CompensateSagnacEffect & CMP_CompensateSatelliteClockBias - RMS_GetCurrentMeasurement returns an error
+*  12 CMP_CompensateSagnacEffect - CRM_GetIppSlantDelay returns an error
+*  13 CMP_CompensateSagnacEffect - CMP_CompensateSagnacEffectSE returns an error
+*  14 CMP_CompensateSagnacEffectSE - invalid input
+*  15 CMP_CompensateSagnacEffectSE - CRM_GetPositionVelocity returns an error
+*  16 CMP_CompensateSagnacEffectSE - MF_FDivide returns an error
+*  17 CMP_CompensateSagnacEffectSE - MF_Log returns an error
+*  18 CMP_CompensateSagnacEffectSE - MF_Log returns an invalid value
+*  19 CMP_CompensateSagnacEffectSE & CMP_CompensateSatelliteClockBias - CRM_GetSmoothedClocksRanges returns an error
+*  20 CMP_CompensateSagnacEffectSE - CRM_GetSmoothedSagnacRanges returns an error
+*  21 CMP_CompensateSagnacEffectSE - CRM_GetSmoothedIonoRanges returns an error
+*  22 CMP_CompensateSagnacEffectSE - CRM_GetSmoothingCounter returns an error
+*  23 CMP_CompensateSagnacEffectSE - CRM_GetSatId returns an error
+*  24 CMP_CompensateSagnacEffectSE - MF_CheckFloatNumber returns an error
+*  25 CMP_CompensateSatelliteClockBias - CRM_GetClockErrors returns an error
+*  26 CMP_CompensateSagnacEffectSE - 100% decision coverage
+*  27 CMP_CompensateSagnacEffectSE - robustness test: input values
+*  28 CMP_CompensateSagnacEffect/CMP_CompensateSagnacEffectSE - robustness test: IFB values
+*  
+******************************************************************************/
+/*****************************************************************************/
+/* Environment Definition                                                    */
+/*****************************************************************************/
+
+#define TEST_SCRIPT_GENERATOR 2
+
+/* Include files from software under test */
+#include "CMP_CompensatePseudoranges.h"
+#include "MD_MonitoringData.h"
+#include "RCF_RimsClockFilter.h"
+#include "RMS_RimsMeasurementStore.h"
+#include "RDS_RimsDataStore.h"
+#include "SDS_SatelliteDataStore.h"
+#include "IFB_IFBias.h"
+#include "MF_MathsFunctions.h"
+#include "T_CMP_CompensatePseudoranges.h"
+#include "ASI_GlobDefsCFile.h"
+
+#define CANTATA_DEFAULT_VALUE 0 /* Default value of variables & stub returns */
+#define T_UNDER_RANGE64 0.999999999999999
+#define T_OUT_OF_RANGE64 1.000000000000001
+
+#include <cantpp.h>  /* Cantata Directives */
+#include <sysLib.h>
+/* pragma qas cantata testscript start */
+/*****************************************************************************/
+/* Global Data Definitions                                                   */
+/*****************************************************************************/
+
+/* Global Functions */
+extern teRTMC_STATUS ACCESS_FUNCTION_T_CMP_CompensatePseudoranges_CMP_CompensateSagnacEffectSE(const tRTMC_UINT32 IodeId, const tRTMC_UINT32 RimsId, const tRTMC_UINT32 SatelliteId, const tsCMP_SagnacData * pSagnacData, tsCRM_CURRENT_MEASUREMENT * pMeasurement);
+
+/* Global data */
+tsCRM_CURRENT_MEASUREMENT myMeasurement;
+tsCRM_RAW_MEASUREMENT myRawMeasurement;
+tsCRM_CORRECTIONS myCorrections;
+tsCRM_SMOOTHED mySmoothed;
+tsCRM_POSITION_DATA myPosition;
+tsCRM_SATELLITE_POSITION mySatPosition[5];
+tsCRM_TROPO_CORRECTION myTropoCorr;
+tsCRM_IONO_CORRECTIONS myIonoCorr;
+tsCRM_IONO_DELAY myIonoDelay;
+tsCRM_IONO_PIERCE_POINT myIPP;
+tsIFB_BIAS myIfb;
+tsIFB_BIAS myIfb2;
+tsIFB_BIAS myIfbMin;
+tsIFB_BIAS myIfbMax;
+tsIFB_BIAS myIfbLow;
+tsIFB_BIAS myIfbHigh;
+tsCRM_SMOOTHING_ARRAY mySmoothingCounts;
+tsCRM_PSEUDORANGE_ARRAY mySmoothedRanges;
+tsCRM_PSEUDORANGE_ARRAY mySmoothedRanges2;
+tsCRM_PSEUDORANGE_ARRAY mySmoothedRanges3;
+tsCRM_IODE_MEASUREMENT_ARRAY myIonoRanges;
+tsCRM_IODE_MEASUREMENT_ARRAY myIonoRanges2;
+tsCRM_IODE_MEASUREMENT_ARRAY myIonoRanges3;
+tsCMP_SagnacData mySagnacData;
+teRTMC_STATUS gReturnValue;
+
+/* Expected variables for global data */
+/* None */
+
+/* This function initialises global data to default values. This function       */
+/* is called by every test case so must not contain test case specific settings */
+static void initialise_global_data(){
+    INITIALISE(gReturnValue);
+}
+
+/* This function copies the global data settings into expected variables for */
+/* use in check_global_data(). It is called by every test case so must not   */
+/* contain test case specific settings.                                      */
+static void initialise_expected_global_data(){
+    /* No global data */
+}
+
+/* This function checks global data against the expected values. */
+static void check_global_data(){
+    /* No global data */
+}
+
+/* Prototypes for test functions */
+void init();
+void run_tests();
+void test_CMP_CompensateRimsClockBias(int);
+void test_CMP_CompensateSagnacEffect(int);
+void test_CMP_CompensateSatelliteClockBias(int);
+void test_CMP_CompensateRimsClockBias_1(int);
+void test_CMP_CompensateSagnacEffect_1(int);
+void test_CMP_CompensateSatelliteClockBias_1(int);
+void test_CMP_CompensateRimsClockBias_2(int);
+void test_CMP_CompensateRimsClockBias_3(int);
+void test_CMP_CompensateSagnacEffectSE(int);
+void test_CMP_CompensateRimsClockBias_4(int);
+void test_CMP_CompensateSatelliteClockBias_2(int);
+void test_CMP_CompensateSagnacEffect_2(int);
+void test_CMP_CompensateSagnacEffectSE_1(int);
+void test_CMP_CompensateSagnacEffect_3(int);
+void test_CMP_CompensateSagnacEffectSE_2(int);
+void test_CMP_CompensateSagnacEffect_4(int);
+void test_CMP_CompensateSagnacEffect_5(int);
+void test_CMP_CompensateSagnacEffectSE_3(int);
+void test_CMP_CompensateSagnacEffectSE_4(int);
+void test_CMP_CompensateSagnacEffect_6(int);
+void test_CMP_CompensateSagnacEffectSE_5(int);
+void test_CMP_CompensateSagnacEffectSE_6(int);
+void test_CMP_CompensateSagnacEffect_7(int);
+void test_CMP_CompensateSatelliteClockBias_3(int);
+void test_CMP_CompensateSagnacEffect_8(int);
+void test_CMP_CompensateSagnacEffect_9(int);
+void test_CMP_CompensateSagnacEffectSE_7();
+void test_CMP_CompensateSagnacEffectSE_8(int);
+void test_CMP_CompensateSagnacEffectSE_9();
+void test_CMP_CompensateSagnacEffectSE_10(int);
+void test_CMP_CompensateSagnacEffectSE_11(int);
+void test_CMP_CompensateSagnacEffectSE_12(int);
+void test_CMP_CompensateSatelliteClockBias_4(int);
+void test_CMP_CompensateSagnacEffectSE_13(int);
+void test_CMP_CompensateSagnacEffectSE_14(int);
+void test_CMP_CompensateSagnacEffectSE_15(int);
+void test_CMP_CompensateSagnacEffectSE_16(int);
+void test_CMP_CompensateSagnacEffectSE_17(int);
+void test_CMP_CompensateSatelliteClockBias_5(int);
+void test_CMP_CompensateSagnacEffectSE_18();
+void test_CMP_CompensateSagnacEffectSE_19(int);
+void test_CMP_CompensateSagnacEffect_10();
+void test_CMP_CompensateSagnacEffectSE_20();
+
+/*****************************************************************************/
+/* Coverage Analysis                                                         */
+/*****************************************************************************/
+/* Coverage Rule Set: 100% Entry Point + Statement + Call Return + Decision Coverage */
+static void rule_set(char* cppca_sut,
+                     char* cppca_context)
+{
+    START_TEST("COVERAGE RULE SET",
+               "100% Entry Point + Statement + Call Return + Decision Coverage");
+#ifdef CANTPP_SUBSET_DEFERRED_ANALYSIS
+    TEST_SCRIPT_WARNING("Coverage Rule Set ignored in deferred analysis mode\n");
+#elif CANTPP_COVERAGE_INSTRUMENTATION_DISABLED
+    TEST_SCRIPT_WARNING("Coverage Instrumentation has been disabled\n");
+#elif CANTPP_INSTRUMENTATION_DISABLED
+    TEST_SCRIPT_WARNING("Instrumentation has been disabled\n");
+#else
+    ANALYSIS_CHECK("100% Entry Point Coverage",
+                   cppca_entrypoint_cov,
+                   100.0);
+    
+    ANALYSIS_CHECK("100% Statement Coverage",
+                   cppca_statement_cov,
+                   100.0);
+    
+    ANALYSIS_CHECK("100% Call Return Coverage",
+                   cppca_callreturn_cov,
+                   100.0);
+    
+    ANALYSIS_CHECK("100% Decision Coverage",
+                   cppca_decision_cov,
+                   100.0);
+    
+    REPORT_COVERAGE(cppca_entrypoint_cov|
+                    cppca_statement_cov|
+                    cppca_callreturn_cov|
+                    cppca_decision_cov,
+                    cppca_sut,
+                    cppca_all_details|cppca_include_catch,
+                    cppca_context);
+#endif
+    END_TEST();
+}
+
+/*****************************************************************************/
+/* Program Entry Point                                                       */
+/*****************************************************************************/
+int main()
+{
+    OPEN_LOG("test_T_CMP_CompensatePseudoranges.ctr", false, 100);
+    START_SCRIPT("T_CMP_CompensatePseudoranges", true);
+    init();
+    run_tests();
+
+    return !END_SCRIPT(true);
+}
+
+/*****************************************************************************/
+/* Test Control                                                              */
+/*****************************************************************************/
+/* run_tests() contains calls to the individual test cases, you can turn test*/
+/* cases off by adding comments*/
+void init(){
+	myTropoCorr.TroposphericCorrection = 0.0;
+	myTropoCorr.ValidityFlag = RTMC_TRUE;
+	myIPP.Latitude = 0.0;
+	myIPP.Longitude = 0.0;
+	myIPP.ValidityFlag = RTMC_TRUE;
+	myIonoDelay.Delay = 0.0;
+	myIonoDelay.StandardDeviation = 0.0;
+	myIonoDelay.ValidityFlag = RTMC_TRUE;
+	myIonoCorr.IonoPiercePoint = myIPP;
+	myIonoCorr.IonoVerticalDelay = myIonoDelay;
+	myIonoCorr.IonoSlantDelay = myIonoDelay;
+	myCorrections.TroposphericCorrections = myTropoCorr;
+	myCorrections.IonosphericCorrections = myIonoCorr;
+	mySatPosition[0].Position[0] = 0.0;
+	mySatPosition[0].Position[1] = 0.0;
+	mySatPosition[0].Position[2] = 0.0;
+	mySatPosition[0].Velocity[0] = 0.0;
+	mySatPosition[0].Velocity[1] = 0.0;
+	mySatPosition[0].Velocity[2] = 0.0;
+	mySatPosition[0].Iode = 0;
+	mySatPosition[0].ValidityFlag = RTMC_TRUE;
+	mySatPosition[1].Position[0] = 0.0;
+	mySatPosition[1].Position[1] = 0.0;
+	mySatPosition[1].Position[2] = 0.0;
+	mySatPosition[1].Velocity[0] = 0.0;
+	mySatPosition[1].Velocity[1] = 0.0;
+	mySatPosition[1].Velocity[2] = 0.0;
+	mySatPosition[1].Iode = 0;
+	mySatPosition[1].ValidityFlag = RTMC_TRUE;
+	myMeasurement.SatPrn = 0;
+	myMeasurement.SatType = 0;
+	myMeasurement.RimsAddress = 0;
+	myMeasurement.MeasurementEpoch = 0;
+	myMeasurement.RawData = myRawMeasurement;
+	myMeasurement.Corrections = myCorrections;
+	myMeasurement.SmoothedData = mySmoothed;
+	myMeasurement.PositionData = myPosition;
+	myMeasurement.ValidityFlag = RTMC_TRUE;
+
+	myIfb.IFBias = 0.0;
+	myIfb.Covariance = 0.0;
+	myIfb.ValidityFlag = RTMC_TRUE;
+	myIfb.ConvergedFlag = RTMC_TRUE;
+	myIfb2 = myIfb;
+	myIfb2.IFBias = 500;
+	myIfbMin = myIfb;
+	myIfbMin.IFBias = T_UNDER_RANGE64*IFB_MIN_IFB;
+	myIfbMax = myIfb;
+	myIfbMax.IFBias = T_UNDER_RANGE64*IFB_MAX_IFB;
+	myIfbLow = myIfb;
+	myIfbLow.IFBias = T_OUT_OF_RANGE64*IFB_MIN_IFB;
+	myIfbHigh = myIfb;
+	myIfbHigh.IFBias = T_OUT_OF_RANGE64*IFB_MAX_IFB;
+
+	mySmoothingCounts[0].Counter = 0;
+	mySmoothingCounts[0].Converged = RTMC_TRUE;
+	mySmoothingCounts[1].Counter = 0;
+	mySmoothingCounts[1].Converged = RTMC_TRUE;
+	mySmoothedRanges[0].Pseudorange = 0.0;
+	mySmoothedRanges[0].ValidityFlag = RTMC_TRUE;
+	mySmoothedRanges[1].Pseudorange = 0.0;
+	mySmoothedRanges[1].ValidityFlag = RTMC_TRUE;
+	memcpy(mySmoothedRanges2, mySmoothedRanges, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	mySmoothedRanges2[0].ValidityFlag = RTMC_FALSE;
+	memcpy(mySmoothedRanges3, mySmoothedRanges, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	mySmoothedRanges3[1].ValidityFlag = RTMC_FALSE;
+	myIonoRanges[0].ValidityFlag = RTMC_TRUE;
+	myIonoRanges[0].Iode = 0;
+	memcpy(myIonoRanges[0].RangesAtFreq, mySmoothedRanges, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	myIonoRanges[1].ValidityFlag = RTMC_TRUE;
+	myIonoRanges[1].Iode = 0;
+	memcpy(myIonoRanges[1].RangesAtFreq, mySmoothedRanges, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	myIonoRanges[2].ValidityFlag = RTMC_TRUE;
+	myIonoRanges[2].Iode = 0;
+	memcpy(myIonoRanges[2].RangesAtFreq, mySmoothedRanges, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	myIonoRanges[3].ValidityFlag = RTMC_TRUE;
+	myIonoRanges[3].Iode = 0;
+	memcpy(myIonoRanges[3].RangesAtFreq, mySmoothedRanges, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	myIonoRanges[4].ValidityFlag = RTMC_TRUE;
+	myIonoRanges[4].Iode = 0;
+	memcpy(myIonoRanges[4].RangesAtFreq, mySmoothedRanges, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	memcpy(myIonoRanges2, myIonoRanges, sizeof(tsCRM_IODE_MEASUREMENT_ARRAY));
+	memcpy(myIonoRanges2[0].RangesAtFreq, mySmoothedRanges2, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	memcpy(myIonoRanges3, myIonoRanges, sizeof(tsCRM_IODE_MEASUREMENT_ARRAY));
+	memcpy(myIonoRanges3[0].RangesAtFreq, mySmoothedRanges3, sizeof(tsCRM_PSEUDORANGE_ARRAY));
+	mySagnacData.pSlantDelay = &myIonoDelay;
+	mySagnacData.RimsIFBias = myIfb;
+	mySagnacData.RimsRange = 0.0;
+	mySagnacData.RimsPosition[0] = 0.0;
+	mySagnacData.RimsPosition[1] = 0.0;
+	mySagnacData.RimsPosition[2] = 0.0;
+}
+/* run_tests() contains calls to the individual test cases, you can turn test*/
+/* cases off by adding comments*/
+void run_tests()
+{
+	sysProcNumSet(1);
+    test_CMP_CompensateRimsClockBias(1);
+    test_CMP_CompensateSagnacEffect(1);
+    test_CMP_CompensateSatelliteClockBias(1);
+    test_CMP_CompensateRimsClockBias_1(1);
+    test_CMP_CompensateSagnacEffect_1(1);
+    test_CMP_CompensateSatelliteClockBias_1(1);
+    test_CMP_CompensateRimsClockBias_2(1);
+    test_CMP_CompensateRimsClockBias_3(1);
+    test_CMP_CompensateSagnacEffectSE(1);
+    test_CMP_CompensateRimsClockBias_4(1);
+    test_CMP_CompensateSatelliteClockBias_2(1);
+    test_CMP_CompensateSagnacEffect_2(1);
+    test_CMP_CompensateSagnacEffectSE_1(1);
+    test_CMP_CompensateSagnacEffect_3(1);
+    test_CMP_CompensateSagnacEffectSE_2(1);
+    test_CMP_CompensateSagnacEffect_4(1);
+    test_CMP_CompensateSagnacEffect_5(1);
+    test_CMP_CompensateSagnacEffectSE_3(1);
+    test_CMP_CompensateSagnacEffectSE_4(1);
+    test_CMP_CompensateSagnacEffect_6(1);
+    test_CMP_CompensateSagnacEffectSE_5(1);
+    test_CMP_CompensateSagnacEffectSE_6(1);
+    test_CMP_CompensateSagnacEffect_7(1);
+    test_CMP_CompensateSatelliteClockBias_3(1);
+    test_CMP_CompensateSagnacEffect_8(1);
+    test_CMP_CompensateSagnacEffect_9(1);
+    test_CMP_CompensateSagnacEffectSE_7();
+    test_CMP_CompensateSagnacEffectSE_8(1);
+    test_CMP_CompensateSagnacEffectSE_9();
+    test_CMP_CompensateSagnacEffectSE_10(1);
+    test_CMP_CompensateSagnacEffectSE_11(1);
+    test_CMP_CompensateSagnacEffectSE_12(1);
+    test_CMP_CompensateSatelliteClockBias_4(1);
+    test_CMP_CompensateSagnacEffectSE_13(1);
+    test_CMP_CompensateSagnacEffectSE_14(1);
+    test_CMP_CompensateSagnacEffectSE_15(1);
+    test_CMP_CompensateSagnacEffectSE_16(1);
+    test_CMP_CompensateSagnacEffectSE_17(1);
+    test_CMP_CompensateSatelliteClockBias_5(1);
+    test_CMP_CompensateSagnacEffectSE_18();
+    test_CMP_CompensateSagnacEffectSE_19(1);
+    test_CMP_CompensateSagnacEffect_10();
+    test_CMP_CompensateSagnacEffectSE_20();
+
+    EXPORT_COVERAGE("test_T_CMP_CompensatePseudoranges.cov", cppca_export_replace);
+    rule_set("*", "*");
+}
+
+/*****************************************************************************/
+/* Test Cases                                                                */
+/*****************************************************************************/
+/*=================================================================
+  CASE 001
+    COMMENT:
+    Various CMP functions - SDS_NumConfiguredSatellites returns an error
+
+    DESIGN:
+       Attempt to call various CMP functions, but SDS_NumConfiguredSatellites
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateRimsClockBias
+       Call CMP_CompensateSagnacEffect
+       Call CMP_CompensateSatelliteClockBias
+-------------------------------------------------------------------*/
+void test_CMP_CompensateRimsClockBias(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 001a - test_CMP_CompensateRimsClockBias",
+               "Various CMP functions - SDS_NumConfiguredSatellites returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#failure;MD_LogEvent#CMPRIM_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateRimsClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffect(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 001b - test_CMP_CompensateSagnacEffect",
+               "Various CMP functions - SDS_NumConfiguredSatellites returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#failure;MD_LogEvent#CMPSAG_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSatelliteClockBias(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 001c - test_CMP_CompensateSatelliteClockBias",
+               "Various CMP functions - SDS_NumConfiguredSatellites returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#failure;MD_LogEvent#CMPSAT_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSatelliteClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 002
+    COMMENT:
+    Various CMP functions - RDS_NumConfiguredBRims returns an error
+
+    DESIGN:
+       Attempt to call various CMP functions, but RDS_NumConfiguredBRims
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateRimsClockBias
+       Call CMP_CompensateSagnacEffect
+       Call CMP_CompensateSatelliteClockBias
+-------------------------------------------------------------------*/
+void test_CMP_CompensateRimsClockBias_1(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 002a - test_CMP_CompensateRimsClockBias_1",
+               "Various CMP functions - RDS_NumConfiguredBRims returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#failure; MD_LogEvent#CMPRIM_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateRimsClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffect_1(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 002b - test_CMP_CompensateSagnacEffect_1",
+               "Various CMP functions - RDS_NumConfiguredBRims returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#failure; MD_LogEvent#CMPSAG_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSatelliteClockBias_1(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 002c - test_CMP_CompensateSatelliteClockBias_1",
+               "Various CMP functions - RDS_NumConfiguredBRims returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#failure; MD_LogEvent#CMPSAT_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSatelliteClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 003
+    COMMENT:
+    CMP_CompensateRimsClockBias - RCF_GetClockBias returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateRimsClockBias, but RCF_GetClockBias
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateRimsClockBias
+-------------------------------------------------------------------*/
+void test_CMP_CompensateRimsClockBias_2(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 003 - test_CMP_CompensateRimsClockBias_2",
+               "CMP_CompensateRimsClockBias - RCF_GetClockBias returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"RCF_GetClockBias#failure; MD_LogEvent#CMPRIM_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateRimsClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 004
+    COMMENT:
+    CMP_CompensateRimsClockBias & T_CMP_CompensateSagnacEffectSE - CRM_GetSmoothedRanges returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateRimsClockBias, but CRM_GetSmoothedRanges
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateRimsClockBias
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateRimsClockBias_3(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 004a - test_CMP_CompensateRimsClockBias_3",
+               "CMP_CompensateRimsClockBias & T_CMP_CompensateSagnacEffectSE - CRM_GetSmoothedRanges returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"RCF_GetClockBias#success; RMS_GetCurrentMeasurement#success_true_myMeas; CRM_GetSmoothedRanges#failure; "
+        		"MD_LogEvent#CMPRIM_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateRimsClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffectSE(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 004b - test_CMP_CompensateSagnacEffectSE",
+               "CMP_CompensateRimsClockBias & T_CMP_CompensateSagnacEffectSE - CRM_GetSmoothedRanges returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_true; "
+        		"MF_FDivide#success; CRM_GetSmoothedRanges#failure; MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+        
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 005
+    COMMENT:
+    CMP_CompensateRimsClockBias & CMP_CompensateRimsClockBias - CRM_GetSmoothedRimsRanges returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateRimsClockBias, but CRM_GetSmoothedRimsRanges
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateRimsClockBias
+       Call CMP_CompensateSatelliteClockBias
+-------------------------------------------------------------------*/
+void test_CMP_CompensateRimsClockBias_4(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 005a - test_CMP_CompensateRimsClockBias_4",
+               "CMP_CompensateRimsClockBias & CMP_CompensateRimsClockBias - CRM_GetSmoothedRimsRanges returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"RCF_GetClockBias#success; RMS_GetCurrentMeasurement#success_true_myMeas; "
+        		"CRM_GetSmoothedRanges#success_mySmoothedRanges; CRM_GetSmoothedRimsRanges#failure; "
+        		"MD_LogEvent#CMPRIM_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateRimsClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSatelliteClockBias_2(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 005b - test_CMP_CompensateSatelliteClockBias_2",
+               "CMP_CompensateRimsClockBias & CMP_CompensateRimsClockBias - CRM_GetSmoothedRimsRanges returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"RMS_GetCurrentMeasurement#success_true_myMeas; CRM_GetSmoothedClocksRanges#success_myIonoRanges; "
+        		"CRM_GetSmoothedRimsRanges#failure; MD_LogEvent#CMPSAT_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSatelliteClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 006
+    COMMENT:
+    CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - IFB_GetIFBs returns an error
+
+    DESIGN:
+       Attempt to call various CMP functions, but IFB_GetIFBs
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_2(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 006a - test_CMP_CompensateSagnacEffect_2",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - IFB_GetIFBs returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; IFB_GetIFBs#failure; "
+        		"MD_LogEvent#CMPSAG_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffectSE_1(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 006b - test_CMP_CompensateSagnacEffectSE_1",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - IFB_GetIFBs returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#failure;MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 007
+    COMMENT:
+    CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - IFBbias out of range
+
+    DESIGN:
+       Attempt to call various CMP functions, but the IFB bias
+       returned by IFB_GetIFBs is outside the valid range, and
+       an InvalidIFBError exception is produced.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_3(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 007a - test_CMP_CompensateSagnacEffect_3",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - IFBbias out of range");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"IFB_GetIFBs#success_myIfb2; MD_LogEvent#CMPSAG_IFB_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffectSE_2(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 007b - test_CMP_CompensateSagnacEffectSE_2",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - IFBbias out of range");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb2; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_true; "
+        		"MF_FDivide#success; CRM_GetSmoothedRanges#success_mySmoothedRanges; "
+        		"CRM_GetSmoothedClocksRanges#success_myIonoRanges; CRM_GetSmoothedSagnacRanges#success_myIonoRanges; "
+        		"CRM_GetSmoothedIonoRanges#success_myIonoRanges; CRM_GetSmoothingCounter#success_mySmoothingCounts; "
+        		"CRM_GetSatId#success_AsiGPS; MD_LogEvent#CMPSE_IFB_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 008
+    COMMENT:
+    CMP_CompensateSagnacEffect - RDS_GetAntennaCartesianPos returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffect, but RDS_GetAntennaCartesianPos
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_4(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 008 - test_CMP_CompensateSagnacEffect_4",
+               "CMP_CompensateSagnacEffect - RDS_GetAntennaCartesianPos returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"IFB_GetIFBs#success_myIfb; RDS_GetAntennaCartesianPos#failure; MD_LogEvent#CMPSAG_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 009
+    COMMENT:
+    CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an error
+
+    DESIGN:
+       Attempt to call various CMP functions, but MF_Sqrt
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect
+       Call CMP_CompensateSagnacEffectSE
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_5(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 009a - test_CMP_CompensateSagnacEffect_5",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"IFB_GetIFBs#success_myIfb; RDS_GetAntennaCartesianPos#success; MF_Sqrt#failure; "
+        		"MD_LogEvent#CMPSAG_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffectSE_3(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 009b - test_CMP_CompensateSagnacEffectSE_3",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb2; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#failure; MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffectSE_4(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 009c - test_CMP_CompensateSagnacEffectSE_4",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb2; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#failure; MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 010
+    COMMENT:
+    CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an invalid measurement
+
+    DESIGN:
+       Attempt to call various CMP functions, but MF_Sqrt returns
+       an invalid measurement, and produces an InvalidSqrt exception
+       in CMP_CompensateSagnacEffect and an InvalidCalc exception in
+       CMP_CompensateSagnacEffectSE.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect
+       Call CMP_CompensateSagnacEffectSE
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_6(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 010a - test_CMP_CompensateSagnacEffect_6",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an invalid measurement");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"IFB_GetIFBs#success_myIfb; RDS_GetAntennaCartesianPos#success; MF_Sqrt#success_false; "
+        		"MD_LogEvent#CMPSAG_Sqrt_err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffectSE_5(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 010b - test_CMP_CompensateSagnacEffectSE_5",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an invalid measurement");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb2; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_false; MD_LogEvent#CMPSE_Float_err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSagnacEffectSE_6(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 010c - test_CMP_CompensateSagnacEffectSE_6",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an invalid measurement");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb2; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_false; MD_LogEvent#CMPSE_Float_err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 011
+    COMMENT:
+    CMP_CompensateSagnacEffect & CMP_CompensateSatelliteClockBias - RMS_GetCurrentMeasurement returns an error
+
+    DESIGN:
+       Attempt to call various CMP functions, but RMS_GetCurrentMeasurement
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect
+       Call CMP_CompensateSatelliteClockBias
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_7(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 011a - test_CMP_CompensateSagnacEffect_7",
+               "CMP_CompensateSagnacEffect & CMP_CompensateSatelliteClockBias - RMS_GetCurrentMeasurement returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"IFB_GetIFBs#success_myIfb; RDS_GetAntennaCartesianPos#success; MF_Sqrt#success_true; "
+        		"RMS_GetCurrentMeasurement#failure; MD_LogEvent#CMPSAG_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSatelliteClockBias_3(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 011b - test_CMP_CompensateSatelliteClockBias_3",
+               "CMP_CompensateSagnacEffect & CMP_CompensateSatelliteClockBias - RMS_GetCurrentMeasurement returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"RMS_GetCurrentMeasurement#failure; MD_LogEvent#CMPSAT_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSatelliteClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 012
+    COMMENT:
+    CMP_CompensateSagnacEffect - CRM_GetIppSlantDelay returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffect, but CRM_GetIppSlantDelay
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_8(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 012 - test_CMP_CompensateSagnacEffect_8",
+               "CMP_CompensateSagnacEffect - CRM_GetIppSlantDelay returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"IFB_GetIFBs#success_myIfb; RDS_GetAntennaCartesianPos#success; MF_Sqrt#success_true; "
+        		"RMS_GetCurrentMeasurement#success_true_myMeas; CRM_GetIppSlantDelay#failure; "
+        		"MD_LogEvent#CMPSAG_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 013
+    COMMENT:
+    CMP_CompensateSagnacEffect - CMP_CompensateSagnacEffectSE returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffect, but CMP_CompensateSagnacEffectSE
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+       The exception is reached by triggering a LowLevelFunctionError exception
+       in CMP_CompensateSagnacEffectSE by IFB_GetIFBs returning RTMC_FAILURE.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_9(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 013 - test_CMP_CompensateSagnacEffect_9",
+               "CMP_CompensateSagnacEffect - CMP_CompensateSagnacEffectSE returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"IFB_GetIFBs#success_myIfb; RDS_GetAntennaCartesianPos#success; MF_Sqrt#success_true; "
+        		"RMS_GetCurrentMeasurement#success_true_myMeas; CRM_GetIppSlantDelay#success_myIonoDelay; "
+        		"IFB_GetIFBs#failure; MD_LogEvent#CMPSE_Call_Err; MD_LogEvent#CMPSAG_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 014
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - invalid input
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but with invalid
+       inputs. Produces an InvalidInputIndexError exception.
+
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE - invalid iode
+       Call CMP_CompensateSagnacEffectSE - invalid satellite id
+       Call CMP_CompensateSagnacEffectSE - invalid rims id
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_7(){
+    struct CPPTH_LOOP_INPUT_STRUCT {
+        /* Test case data declarations */
+        char* name;
+        char* description;
+        char* expected_calls;
+        int execute;
+        tRTMC_UINT32 IodeId;
+        tRTMC_UINT32 RimsId;
+        tRTMC_UINT32 SatelliteId;
+    };
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    /* Import external data declarations */
+    #include "test_CMP_CompensateSagnacEffectSE_7.h"
+
+    START_TEST_LOOP();
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS(CURRENT_TEST.expected_calls);
+			
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(CURRENT_TEST.IodeId, CURRENT_TEST.RimsId, CURRENT_TEST.SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            
+        END_CALLS();
+    END_TEST_LOOP();
+}
+/*=================================================================
+  CASE 015
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - CRM_GetPositionVelocity returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but CRM_GetPositionVelocity
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_8(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 015 - test_CMP_CompensateSagnacEffectSE_8",
+               "CMP_CompensateSagnacEffectSE - CRM_GetPositionVelocity returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb;CRM_GetPositionVelocity#failure;MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 016
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - MF_FDivide returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but MF_FDivide
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_9(){
+    struct CPPTH_LOOP_INPUT_STRUCT {
+        /* Test case data declarations */
+        char* name;
+        char* description;
+        char* expected_calls;
+        int execute;
+        tRTMC_UINT32 IodeId;
+        tRTMC_UINT32 RimsId;
+        tRTMC_UINT32 SatelliteId;
+        const tsCMP_SagnacData * pSagnacData;
+        tsCRM_CURRENT_MEASUREMENT * pMeasurement;
+        teRTMC_STATUS expected_returnValue;
+    };
+    
+    
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    /* Import external data declarations */
+    #include "test_CMP_CompensateSagnacEffectSE_9.h"
+
+    START_TEST_LOOP();
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS(CURRENT_TEST.expected_calls);
+			
+            /* Call SUT */
+            gReturnValue =ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(CURRENT_TEST.IodeId, CURRENT_TEST.RimsId, CURRENT_TEST.SatelliteId, CURRENT_TEST.pSagnacData, CURRENT_TEST.pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, CURRENT_TEST.expected_returnValue);
+            CHECK_MEMORY("pSagnacData", CURRENT_TEST.pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            
+        END_CALLS();
+    END_TEST_LOOP();
+}
+/*=================================================================
+  CASE 017
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - MF_Log returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but MF_Log
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_10(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 017 - test_CMP_CompensateSagnacEffectSE_10",
+               "CMP_CompensateSagnacEffect & T_CMP_CompensateSagnacEffectSE - MF_Sqrt returns an invalid measurement");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#failure; "
+        		"MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 018
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - MF_Log returns an invalid value
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but
+       MF_Log returns an invalid measurement, and produces an
+       InvalidCalc exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_11(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 018 - test_CMP_CompensateSagnacEffectSE_11",
+               "CMP_CompensateSagnacEffectSE - MF_Log returns an invalid value");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_false; "
+        		"MD_LogEvent#CMPSE_Float_err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 019
+    COMMENT:
+    CMP_CompensateSagnacEffectSE & CMP_CompensateSatelliteClockBias - CRM_GetSmoothedClocksRanges returns an error
+
+    DESIGN:
+       Attempt to call various CMP functions, but CRM_GetSmoothedClocksRanges
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Functions return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+       Call CMP_CompensateSatelliteClockBias
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_12(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 019a - test_CMP_CompensateSagnacEffectSE_12",
+               "CMP_CompensateSagnacEffectSE & CMP_CompensateSatelliteClockBias - CRM_GetSmoothedClocksRanges returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_true; "
+        		"MF_FDivide#success; CRM_GetSmoothedRanges#success_mySmoothedRanges; "
+        		"CRM_GetSmoothedClocksRanges#failure; MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+
+void test_CMP_CompensateSatelliteClockBias_4(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 019b - test_CMP_CompensateSatelliteClockBias_4",
+               "CMP_CompensateSagnacEffectSE & CMP_CompensateSatelliteClockBias - CRM_GetSmoothedClocksRanges returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"RMS_GetCurrentMeasurement#success_true_myMeas; CRM_GetSmoothedClocksRanges#failure; "
+        		"MD_LogEvent#CMPSAT_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSatelliteClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 020
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - CRM_GetSmoothedSagnacRanges returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but CRM_GetSmoothedSagnacRanges
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_13(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 020 - test_CMP_CompensateSagnacEffectSE_13",
+               "CMP_CompensateSagnacEffectSE - CRM_GetSmoothedSagnacRanges returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_true; "
+        		"MF_FDivide#success; CRM_GetSmoothedRanges#success_mySmoothedRanges; "
+        		"CRM_GetSmoothedClocksRanges#success_myIonoRanges; CRM_GetSmoothedSagnacRanges#failure; "
+        		"MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 21
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - CRM_GetSmoothedIonoRanges returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but CRM_GetSmoothedIonoRanges
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_14(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 021 - test_CMP_CompensateSagnacEffectSE_14",
+               "CMP_CompensateSagnacEffectSE - CRM_GetSmoothedIonoRanges returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_true; "
+        		"MF_FDivide#success; CRM_GetSmoothedRanges#success_mySmoothedRanges; "
+        		"CRM_GetSmoothedClocksRanges#success_myIonoRanges; CRM_GetSmoothedSagnacRanges#success_myIonoRanges; "
+        		"CRM_GetSmoothedIonoRanges#failure; MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 022
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - CRM_GetSmoothingCounter returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but CRM_GetSmoothingCounter
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_15(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 022 - test_CMP_CompensateSagnacEffectSE_15",
+               "CMP_CompensateSagnacEffectSE - CRM_GetSmoothingCounter returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_true; "
+        		"MF_FDivide#success; CRM_GetSmoothedRanges#success_mySmoothedRanges; "
+        		"CRM_GetSmoothedClocksRanges#success_myIonoRanges; CRM_GetSmoothedSagnacRanges#success_myIonoRanges; "
+        		"CRM_GetSmoothedIonoRanges#success_myIonoRanges; CRM_GetSmoothingCounter#failure; "
+        		"MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 023
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - CRM_GetSatId returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but CRM_GetSatId
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_16(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 023 - test_CMP_CompensateSagnacEffectSE_16",
+               "CMP_CompensateSagnacEffectSE - CRM_GetSatId returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_true; "
+        		"MF_FDivide#success; CRM_GetSmoothedRanges#success_mySmoothedRanges; "
+        		"CRM_GetSmoothedClocksRanges#success_myIonoRanges; CRM_GetSmoothedSagnacRanges#success_myIonoRanges; "
+        		"CRM_GetSmoothedIonoRanges#success_myIonoRanges; CRM_GetSmoothingCounter#success_mySmoothingCounts; "
+        		"CRM_GetSatId#failure; MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 024
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - MF_CheckFloatNumber returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but MF_CheckFloatNumber
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_17(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = 1;
+    tRTMC_UINT32 RimsId = 1;
+    tRTMC_UINT32 SatelliteId = 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 024 - test_CMP_CompensateSagnacEffectSE_17",
+               "CMP_CompensateSagnacEffectSE - MF_CheckFloatNumber returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition; "
+        		"MF_Sqrt#success_true; MF_Sqrt#success_true; MF_FDivide#success; MF_Log#success_true; "
+        		"MF_FDivide#success; CRM_GetSmoothedRanges#success_mySmoothedRanges; "
+        		"CRM_GetSmoothedClocksRanges#success_myIonoRanges; CRM_GetSmoothedSagnacRanges#success_myIonoRanges; "
+        		"CRM_GetSmoothedIonoRanges#success_myIonoRanges;CRM_GetSmoothingCounter#success_mySmoothingCounts;"
+        		"CRM_GetSatId#success_AsiGPS;MF_CheckFloatNumber#failure;MD_LogEvent#CMPSE_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 025
+    COMMENT:
+    CMP_CompensateSatelliteClockBias - CRM_GetClockErrors returns an error
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but CRM_GetClockErrors
+       returns RTMC_FAILURE, and produces a LowLevelFunctionError exception.
+
+    EXPECTED RESULTS:
+       Function returns failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSatelliteClockBias
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSatelliteClockBias_5(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    teRTMC_STATUS expected_returnValue = RTMC_FAILURE;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 025 - test_CMP_CompensateSatelliteClockBias_5",
+               "CMP_CompensateSatelliteClockBias - CRM_GetClockErrors returns an error");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("SDS_NumConfiguredSatellites#success; RDS_NumConfiguredBRims#success; "
+        		"RMS_GetCurrentMeasurement#success_true_myMeas; CRM_GetSmoothedClocksRanges#success_myIonoRanges; "
+        		"CRM_GetSmoothedRimsRanges#success_mySmoothedRanges; CRM_GetClockErrors#failure; "
+        		"MD_LogEvent#CMPSAT_Call_Err");
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSatelliteClockBias();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 026
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - 100% decision coverage
+
+    DESIGN:
+       Attempt to call CMP_CompensateSagnacEffectSE, but various
+       validity flags are not valid.
+
+    EXPECTED RESULTS:
+       Function returns success
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE - invalid L1
+       Call CMP_CompensateSagnacEffectSE - invalid L2
+       Call CMP_CompensateSagnacEffectSE - invalid L1 and L2
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_18(){
+    struct CPPTH_LOOP_INPUT_STRUCT {
+        /* Test case data declarations */
+        char* name;
+        char* description;
+        char* expected_calls;
+        int execute;
+        tRTMC_UINT32 IodeId;
+        tRTMC_UINT32 RimsId;
+        tRTMC_UINT32 SatelliteId;
+        const tsCMP_SagnacData * pSagnacData;
+        tsCRM_CURRENT_MEASUREMENT * pMeasurement;
+        teRTMC_STATUS expected_returnValue;
+    };
+    
+    
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    /* Import external data declarations */
+    #include "test_CMP_CompensateSagnacEffectSE_18.h"
+
+    START_TEST_LOOP();
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS(CURRENT_TEST.expected_calls);
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(CURRENT_TEST.IodeId, CURRENT_TEST.RimsId, CURRENT_TEST.SatelliteId, CURRENT_TEST.pSagnacData, CURRENT_TEST.pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, CURRENT_TEST.expected_returnValue);
+            CHECK_MEMORY("pSagnacData", CURRENT_TEST.pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+        END_CALLS();
+    END_TEST_LOOP();
+}
+/*=================================================================
+  CASE 027
+    COMMENT:
+    CMP_CompensateSagnacEffectSE - robustness test: input values
+
+    DESIGN:
+       Call CMP_CompensateSagnacEffectSE, with inputs set to upper
+       allowed limits.
+
+    EXPECTED RESULTS:
+       Function returns success
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffectSE
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffectSE_19(int doIt){
+if (doIt) {
+    /* Test case data declarations */
+    tRTMC_UINT32 IodeId = NS_EPH_STORE_SIZE - 1;
+    tRTMC_UINT32 RimsId = ASI_MAX_B_RIMS - 1;
+    tRTMC_UINT32 SatelliteId = ASI_MAX_SATS_CONFIGURED - 1;
+    const tsCMP_SagnacData * pSagnacData = &mySagnacData;
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    tsCRM_CURRENT_MEASUREMENT * pMeasurement = &myMeasurement;
+    teRTMC_STATUS expected_returnValue = RTMC_SUCCESS;
+    
+    /* Set global data */
+    initialise_global_data();
+    /* Set expected values for global data checks */
+    initialise_expected_global_data();
+
+    START_TEST("Case 027 - test_CMP_CompensateSagnacEffectSE_19",
+               "CMP_CompensateSagnacEffectSE - robustness test: input values");
+
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS("IFB_GetIFBs#success_myIfb; CRM_GetPositionVelocity#success_mySatPosition");
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(IodeId, RimsId, SatelliteId, pSagnacData, pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, expected_returnValue);
+            CHECK_MEMORY("pSagnacData", pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+            /* Checks on global data */
+            check_global_data();
+        END_CALLS();
+    END_TEST();
+}}
+/*=================================================================
+  CASE 028
+    COMMENT:
+    CMP_CompensateSagnacEffect/CMP_CompensateSagnacEffectSE - robustness test: IFB values
+
+    DESIGN:
+       Call CMP_CompensateSagnacEffect and CMP_CompensateSagnacEffectSE,
+       to robustness test the upper and lower limits of the IFBbias.
+
+    EXPECTED RESULTS:
+       Calls 1,2,5 and 6 return success
+       Calls 3,4,7 and 8 return failure
+
+    PSEUDO-CODE:
+       Call CMP_CompensateSagnacEffect - SagnacData.RimsIFBias.IFBias = IFB_MIN_IFB
+       Call CMP_CompensateSagnacEffect - SagnacData.RimsIFBias.IFBias = IFB_MAX_IFB
+       Call CMP_CompensateSagnacEffect - SagnacData.RimsIFBias.IFBias < IFB_MIN_IFB
+       Call CMP_CompensateSagnacEffect - SagnacData.RimsIFBias.IFBias > IFB_MIN_IFB
+       Call CMP_CompensateSagnacEffectSE - SagnacData.RimsIFBias.IFBias = IFB_MIN_IFB
+       Call CMP_CompensateSagnacEffectSE - SagnacData.RimsIFBias.IFBias = IFB_MAX_IFB
+       Call CMP_CompensateSagnacEffectSE - SagnacData.RimsIFBias.IFBias < IFB_MIN_IFB
+       Call CMP_CompensateSagnacEffectSE - SagnacData.RimsIFBias.IFBias > IFB_MIN_IFB
+-------------------------------------------------------------------*/
+void test_CMP_CompensateSagnacEffect_10(){
+    struct CPPTH_LOOP_INPUT_STRUCT {
+        /* Test case data declarations */
+        char* name;
+        char* description;
+        char* expected_calls;
+        int execute;
+        teRTMC_STATUS expected_returnValue;
+    };
+    
+    /* Import external data declarations */
+    #include "test_CMP_CompensateSagnacEffect_10.h"
+
+    START_TEST_LOOP();
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS(CURRENT_TEST.expected_calls);
+
+            /* Call SUT */
+            gReturnValue = CMP_CompensateSagnacEffect();
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, CURRENT_TEST.expected_returnValue);
+        END_CALLS();
+    END_TEST_LOOP();
+}
+
+void test_CMP_CompensateSagnacEffectSE_20(){
+    struct CPPTH_LOOP_INPUT_STRUCT {
+        /* Test case data declarations */
+        char* name;
+        char* description;
+        char* expected_calls;
+        int execute;
+        tRTMC_UINT32 IodeId;
+        tRTMC_UINT32 RimsId;
+        tRTMC_UINT32 SatelliteId;
+        const tsCMP_SagnacData * pSagnacData;
+        tsCRM_CURRENT_MEASUREMENT * pMeasurement;
+        teRTMC_STATUS expected_returnValue;
+    };
+    
+    
+    tsCMP_SagnacData expected_pSagnacData = mySagnacData;
+    /* Import external data declarations */
+    #include "test_CMP_CompensateSagnacEffectSE_20_1.h"
+
+    START_TEST_LOOP();
+		/* Set global data */
+		initialise_global_data();
+		/* Set expected values for global data checks */
+		initialise_expected_global_data();
+        /* Expected Call Sequence  */
+        EXPECTED_CALLS(CURRENT_TEST.expected_calls);
+
+            /* Call SUT */
+            gReturnValue = ACCESS_FUNCTION(T_CMP_CompensatePseudoranges, CMP_CompensateSagnacEffectSE)(CURRENT_TEST.IodeId, CURRENT_TEST.RimsId, CURRENT_TEST.SatelliteId, CURRENT_TEST.pSagnacData, CURRENT_TEST.pMeasurement);
+
+            /* Test case checks */
+            CHECK_S_INT(gReturnValue, CURRENT_TEST.expected_returnValue);
+            CHECK_MEMORY("pSagnacData", CURRENT_TEST.pSagnacData, &expected_pSagnacData, sizeof(expected_pSagnacData));
+        END_CALLS();
+    END_TEST_LOOP();
+}
+
+/*****************************************************************************/
+/* Call Interface Control                                                    */
+/*****************************************************************************/
+
+/* Stub for function SDS_NumConfiguredSatellites */
+teRTMC_STATUS SDS_NumConfiguredSatellites(tRTMC_UINT32 * pNumConfigured){
+    REGISTER_CALL("SDS_NumConfiguredSatellites");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success") {
+    	*pNumConfigured = 1;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function RDS_NumConfiguredBRims */
+teRTMC_STATUS RDS_NumConfiguredBRims(tRTMC_UINT32 * pNumBConfigured){
+    REGISTER_CALL("RDS_NumConfiguredBRims");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success") {
+    	*pNumBConfigured = 1;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function RCF_GetClockBias */
+teRTMC_STATUS RCF_GetClockBias(const tRTMC_UINT32 RimsId,
+                               tsRCF_CLOCK_BIAS * pRimsClockBias){
+    REGISTER_CALL("RCF_GetClockBias");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success") {
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function RMS_GetCurrentMeasurement */
+teRTMC_STATUS RMS_GetCurrentMeasurement(const tRTMC_UINT32 SatIndex,
+                                        const tRTMC_UINT32 RimsIndex,
+                                        tsCRM_CURRENT_MEASUREMENT ** ppMeasurement,
+                                        teRTMC_BOOL * pValidityFlag){
+    REGISTER_CALL("RMS_GetCurrentMeasurement");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_true_myMeas") {
+    	*pValidityFlag = RTMC_TRUE;
+    	*ppMeasurement = &myMeasurement;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetSmoothedRanges */
+teRTMC_STATUS CRM_GetSmoothedRanges(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                    tsCRM_PSEUDORANGE ** ppSmoothedRanges){
+    REGISTER_CALL("CRM_GetSmoothedRanges");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_mySmoothedRanges") {
+    	*ppSmoothedRanges = mySmoothedRanges;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_mySmoothedRanges3") {
+    	*ppSmoothedRanges = mySmoothedRanges3;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetSmoothedRimsRanges */
+teRTMC_STATUS CRM_GetSmoothedRimsRanges(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                        tsCRM_PSEUDORANGE ** ppSmoothedRanges){
+    REGISTER_CALL("CRM_GetSmoothedRimsRanges");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_mySmoothedRanges") {
+    	*ppSmoothedRanges = mySmoothedRanges;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function MD_LogEvent */
+teRTMC_STATUS MD_LogEvent(const tRTMC_UINT16 EventType,
+                          const tRTMC_OBJECT_ID ObjectId,
+                          const teMD_OBJECT_STATUS ObjectStatus,
+                          const tRTMC_CHAR * EventText){
+    REGISTER_CALL("MD_LogEvent");
+
+    IF_INSTANCE("CMPRIM_Call_Err") {
+        CHECK_U_INT(EventType, MD_PROPAGATED_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPRIM: Call Err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("CMPSAG_IFB_Err") {
+        CHECK_U_INT(EventType, MD_RUNTIME_BOUNDS_CHECK_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPSAG: IFB Err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("CMPSAG_Sqrt_err") {
+        CHECK_U_INT(EventType, MD_INTEG_NUMERICAL_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPSAG: Sqrt err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("CMPSAG_Call_Err") {
+        CHECK_U_INT(EventType, MD_PROPAGATED_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPSAG: Call Err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("CMPSE_Float_err") {
+        CHECK_U_INT(EventType, MD_INTEG_NUMERICAL_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPSE: Float err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("CMPSE_IFB_Err") {
+        CHECK_U_INT(EventType, MD_RUNTIME_BOUNDS_CHECK_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPSE: IFB Err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("CMPSE_Index_Err") {
+        CHECK_U_INT(EventType, MD_RUNTIME_BOUNDS_CHECK_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPSE: Index Err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("CMPSE_Call_Err") {
+        CHECK_U_INT(EventType, MD_PROPAGATED_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPSE: Call Err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("CMPSAT_Call_Err") {
+        CHECK_U_INT(EventType, MD_PROPAGATED_ERROR);
+        CHECK_U_CHAR(ObjectId, RTMC_FN_INTEG_PREPROCESSING);
+        CHECK_S_INT(ObjectStatus, MD_STATUS_FAILED);
+        CHECK_STRING(EventText, "CMPSAT: Call Err");
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetSmoothedClocksRanges */
+teRTMC_STATUS CRM_GetSmoothedClocksRanges(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                          tsCRM_IODE_MEASUREMENT ** ppSmoothedRanges){
+    REGISTER_CALL("CRM_GetSmoothedClocksRanges");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_myIonoRanges") {
+		*ppSmoothedRanges = myIonoRanges;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_myIonoRanges2") {
+		*ppSmoothedRanges = myIonoRanges2;    	
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_myIonoRanges3") {
+		*ppSmoothedRanges = myIonoRanges3;    	
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetClockErrors */
+teRTMC_STATUS CRM_GetClockErrors(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                 tsCRM_SAT_CLOCK ** ppClockErrors){
+    REGISTER_CALL("CRM_GetClockErrors");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function IFB_GetIFBs */
+teRTMC_STATUS IFB_GetIFBs(const teRTMC_BOOL RimsNotSat,
+                          const tRTMC_UINT32 IFBIndex,
+                          tsIFB_BIAS * pIFBias){
+    REGISTER_CALL("IFB_GetIFBs");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_myIfb") {
+    	*pIFBias = myIfb;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_myIfb2") {
+    	*pIFBias = myIfb2;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_myIfbMin") {
+    	*pIFBias = myIfbMin;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_myIfbMax") {
+    	*pIFBias = myIfbMax;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_myIfbLow") {
+    	*pIFBias = myIfbLow;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_myIfbHigh") {
+    	*pIFBias = myIfbHigh;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function RDS_GetAntennaCartesianPos */
+teRTMC_STATUS RDS_GetAntennaCartesianPos(const tRTMC_UINT32 RimsIndex,
+                                         tASI_FLT64 * Position){
+    REGISTER_CALL("RDS_GetAntennaCartesianPos");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success") {
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function MF_Sqrt */
+teRTMC_STATUS MF_Sqrt(const tASI_FLT64 InputValue,
+                      tASI_FLT64 * pOutputValue,
+                      teRTMC_BOOL * pOutputOK){
+    REGISTER_CALL("MF_Sqrt");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_true") {
+    	*pOutputOK = RTMC_TRUE;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_false") {
+    	*pOutputOK = RTMC_FALSE;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetIppSlantDelay */
+teRTMC_STATUS CRM_GetIppSlantDelay(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                   tsCRM_IONO_DELAY ** ppSlantDelay){
+    REGISTER_CALL("CRM_GetIppSlantDelay");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_myIonoDelay") {
+    	*ppSlantDelay = &myIonoDelay;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetPositionVelocity */
+teRTMC_STATUS CRM_GetPositionVelocity(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                      tsCRM_SATELLITE_POSITION ** ppPositionData){
+    REGISTER_CALL("CRM_GetPositionVelocity");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_mySatPosition") {
+    	*ppPositionData = mySatPosition;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function MF_FDivide */
+teRTMC_STATUS MF_FDivide(const tASI_FLT64 Numerator,
+                         const tASI_FLT64 Denominator,
+                         tASI_FLT64 * pOutputValue){
+    REGISTER_CALL("MF_FDivide");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success") {
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function MF_Log */
+teRTMC_STATUS MF_Log(const tASI_FLT64 InputValue,
+                     tASI_FLT64 * pOutputValue,
+                     teRTMC_BOOL * pOutputOK){
+    REGISTER_CALL("MF_Log");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_true") {
+    	*pOutputOK = RTMC_TRUE;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_false") {
+    	*pOutputOK = RTMC_FALSE;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetSmoothedSagnacRanges */
+teRTMC_STATUS CRM_GetSmoothedSagnacRanges(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                          tsCRM_IODE_MEASUREMENT ** ppSmoothedRanges){
+    REGISTER_CALL("CRM_GetSmoothedSagnacRanges");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_myIonoRanges") {
+    	*ppSmoothedRanges = myIonoRanges;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_myIonoRanges2") {
+    	*ppSmoothedRanges = myIonoRanges2;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetSmoothedIonoRanges */
+teRTMC_STATUS CRM_GetSmoothedIonoRanges(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                        tsCRM_IODE_MEASUREMENT ** ppSmoothedRanges){
+    REGISTER_CALL("CRM_GetSmoothedIonoRanges");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_myIonoRanges") {
+    	*ppSmoothedRanges = myIonoRanges;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetSmoothingCounter */
+teRTMC_STATUS CRM_GetSmoothingCounter(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                                      tsCRM_SMOOTHING_COUNTER ** ppSmoothingCounters){
+    REGISTER_CALL("CRM_GetSmoothingCounter");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_mySmoothingCounts") {
+    	*ppSmoothingCounters = mySmoothingCounts;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function CRM_GetSatId */
+teRTMC_STATUS CRM_GetSatId(const tsCRM_CURRENT_MEASUREMENT * pMeasurement,
+                           tASI_SAT_PRN * pSatPrn,
+                           teASI_SAT_TYPE * pSatType,
+                           tRTMC_INT32 * pSatIndex){
+    REGISTER_CALL("CRM_GetSatId");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success_AsiGPS") {
+		*pSatType = ASI_GPS;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+    IF_INSTANCE("success_AsiGEO") {
+		*pSatType = ASI_GEO;
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+/* Stub for function MF_CheckFloatNumber */
+teRTMC_STATUS MF_CheckFloatNumber(const tASI_FLT64 InputValue){
+    REGISTER_CALL("MF_CheckFloatNumber");
+
+    IF_INSTANCE("failure") {
+        return (teRTMC_STATUS) RTMC_FAILURE;
+    }
+    IF_INSTANCE("success") {
+        return (teRTMC_STATUS) RTMC_SUCCESS;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+#pragma qas cantata ignore on
+
+/* Before-Wrapper for function CMP_CompensateSagnacEffectSE */
+int BEFORE_CMP_CompensateSagnacEffectSE(const tRTMC_UINT32 IodeId,
+                                        const tRTMC_UINT32 RimsId,
+                                        const tRTMC_UINT32 SatelliteId,
+                                        const tsCMP_SagnacData * pSagnacData,
+                                        tsCRM_CURRENT_MEASUREMENT * pMeasurement){
+    REGISTER_CALL("CMP_CompensateSagnacEffectSE");
+
+    IF_INSTANCE("default") {
+        return AFTER_WRAPPER;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return AFTER_WRAPPER;
+}
+
+/* After-Wrapper for function CMP_CompensateSagnacEffectSE */
+teRTMC_STATUS AFTER_CMP_CompensateSagnacEffectSE(teRTMC_STATUS cppsm_return_value,
+                                                 const tRTMC_UINT32 IodeId,
+                                                 const tRTMC_UINT32 RimsId,
+                                                 const tRTMC_UINT32 SatelliteId,
+                                                 const tsCMP_SagnacData * pSagnacData,
+                                                 tsCRM_CURRENT_MEASUREMENT * pMeasurement){
+    IF_INSTANCE("default") {
+        return cppsm_return_value;
+    }
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return cppsm_return_value;
+}
+
+/* Replace-Wrapper for function CMP_CompensateSagnacEffectSE */
+teRTMC_STATUS REPLACE_CMP_CompensateSagnacEffectSE(const tRTMC_UINT32 IodeId,
+                                                   const tRTMC_UINT32 RimsId,
+                                                   const tRTMC_UINT32 SatelliteId,
+                                                   const tsCMP_SagnacData * pSagnacData,
+                                                   tsCRM_CURRENT_MEASUREMENT * pMeasurement){
+
+    LOG_SCRIPT_ERROR("Call instance not defined.");
+    return (teRTMC_STATUS) CANTATA_DEFAULT_VALUE;
+}
+
+#pragma qas cantata ignore off
+/* pragma qas cantata testscript end */
+/*****************************************************************************/
+/* End of test script                                                        */
+/*****************************************************************************/

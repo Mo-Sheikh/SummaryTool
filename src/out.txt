@@ -1,0 +1,17 @@
+*   1	 DNDS_ClearDecodedDataStores - Fail call to EDS_ClearDataSet
+*   2	 DNDS_ClearDecodedDataStores - Fail call to ADS_ClearDataSet
+*   3	 DNDS_ClearDecodedDataStores - Fail call to IPS_ClearParameterSet
+*   4	 DNDS_ClearDecodedDataStores - Fail call to EPS_ClearDataSet
+*   5	 DNDS_GetDecodedEphemeris - Null pointer
+*   006	 DNDS_GetNextAlmanac - test behaviour now store is full
+*   007	 DNDS_GetNextEphemeris - test behaviour now store is full
+*   008	 DNDS_GetNextIono - test behaviour now store is full
+*   009	 DNDS_GetNextEntUtc - test behaviour now store is full
+*   010	 DNDS_GetDecodedAlmanac - checking the address of ppDecodedAlmanac
+*   011	 DNDS_GetDecodedEntUtc - checking the address of ppDecodedEntUtc
+*   012	 DNDS_GetDecodedEphemeris - checking the address of ppDecodedEphemeris and number of stored ephemeris sets
+*   013	 DNDS_GetDecodedIono - checking the address of ppDecodedIono
+*   014	 DNDS_GetNextAlmanac - checking the address of ppAlmanac
+*   015	 DNDS_GetNextEntUtc - checking the address of ppEntUtcParameters and the number of decoded ephemeris
+*   016	 DNDS_GetNextEphemeris - checking the address of ppEphemeris and the number of decoded ephemeris  
+*   017	 DNDS_GetNextIono - checking the address of ppIonoParameters  
